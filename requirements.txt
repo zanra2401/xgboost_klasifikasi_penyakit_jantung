@@ -1,6 +1,5 @@
-streamlit==1.46.0 # Sesuaikan dengan versi Streamlit Anda
-pandas==2.2.0    # Sesuaikan dengan versi Pandas Anda
-joblib==1.4.0    # Sesuaikan dengan versi Joblib Anda
-xgboost==1.7.6   # Sesuaikan dengan versi XGBoost Anda di lokal
-scikit-learn==1.4.2 # Sesuaikan dengan versi Scikit-learn Anda
-# imbalanced-learn==0.12.2 # Jika Anda menggunakannya, sesuaikan versinya
+streamlit
+pandas
+joblib
+xgboost
+scikit-learn
