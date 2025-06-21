@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np # Import numpy jika Anda menggunakan np.array() atau sejenisnya
 import pickle
+import xgboost
 
 st.set_page_config(page_title="Prediksi Risiko Penyakit Jantung", layout="centered")
     
