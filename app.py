@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np # Import numpy jika Anda menggunakan np.array() atau sejenisnya
+import pickle
 
 st.set_page_config(page_title="Prediksi Risiko Penyakit Jantung", layout="centered")
     
@@ -10,7 +10,8 @@ st.set_page_config(page_title="Prediksi Risiko Penyakit Jantung", layout="center
 # Pastikan file model_klasifikasi_xgboost.pkl ada di direktori yang sama
 # atau berikan path lengkap ke file tersebut.
 try:
-    model = joblib.load('klasifikasi_penyakit_jantung_xgboost.pkl')
+    with open('klasifikasi_penyakit_jantung_xgboost.pkl', 'rb') as file:
+        model = pickle.load(file)
     st.success("Model berhasil dimuat!")
 except FileNotFoundError:
     st.error("Error: File model 'model_klasifikasi_xgboost.pkl' tidak ditemukan.")
