@@ -103,8 +103,10 @@ if st.button("Prediksi Risiko Penyakit Jantung"):
     if prediction[0] == 1:
         st.error("⚠️ Pasien Diprediksi **BERISIKO TINGGI** Terkena Penyakit Jantung")
         st.write(f"Terklasifikasi pada kelas: **{prediction[0]}**")
-        st.write(f"Probabilitas risiko tinggi: **{prediction_proba[0][1]*100:.2f}%**")
+        st.write(f"Probabilitas risiko tidak terkena penyakit jantung: **{prediction_proba[0][0]*100:.2f}%**")
+        st.write(f"Probabilitas risiko terkena penyakit jantung: **{prediction_proba[0][1]*100:.2f}%**")
     else:
-        st.write(f"Terklasifikasi pada kelas: **{prediction[0   ]}**")
+        st.write(f"Terklasifikasi pada kelas: **{prediction[0]}**")
         st.success("✅ Pasien Diprediksi **BERISIKO RENDAH** Terkena Penyakit Jantung")
-        st.write(f"Probabilitas risiko rendah: **{prediction_proba[0][0]*100:.2f}%**")
+        st.write(f"Probabilitas risiko tidak terkena penyakit jantung: **{prediction_proba[0][0]*100:.2f}%**")
+        st.write(f"Probabilitas risiko terkena penyakit jantung: **{prediction_proba[0][1]*100:.2f}%**")
