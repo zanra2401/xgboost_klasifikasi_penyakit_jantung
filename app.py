@@ -59,8 +59,6 @@ def user_input_features():
 
     trestbps = st.sidebar.slider('Tekanan Darah Istirahat (mm Hg)', 90, 200, 120)
     
-    # --- PERUBAHAN DI SINI ---
-    # Mengubah slider menjadi number_input untuk kemudahan
     chol = st.sidebar.number_input('Kolesterol Serum (mg/dl)', min_value=100, max_value=600, value=200)
 
     fbs_options = {'Ya (> 120 mg/dl)': True, 'Tidak (<= 120 mg/dl)': False}
@@ -78,7 +76,9 @@ def user_input_features():
     exang_options = {'Ya': True, 'Tidak': False}
     exang = st.sidebar.radio('Angina Akibat Olahraga (Exercise Induced Angina)', list(exang_options.keys()))
 
-    oldpeak = st.sidebar.slider('Oldpeak (ST depression induced by exercise)', 0.0, 6.5, 1.0)
+    # --- PERUBAHAN DI SINI ---
+    # Mengubah slider menjadi number_input untuk kemudahan dan presisi
+    oldpeak = st.sidebar.number_input('Oldpeak (ST depression)', min_value=0.0, max_value=7.0, value=1.0, step=0.1)
 
     slope_options = {
         'Upsloping': 'upsloping',
@@ -148,7 +148,7 @@ if predict_button and model is not None:
     
     # Asumsi: 0 = Tidak Sakit Jantung, 1 = Sakit Jantung
     if prediction[0] == 1:
-        st.error("**Risiko Tinggi: Terdeteksi Penyakit Jantung**", icon="💔")
+        st.error("**Risiko Tinggi: Terdeteksi Penyakit Jantung**", icon="�")
     else:
         st.success("**Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
         
@@ -167,4 +167,3 @@ if predict_button and model is not None:
     """)
 elif predict_button and model is None:
     st.error("Prediksi tidak dapat dilakukan karena model gagal dimuat.")
-
