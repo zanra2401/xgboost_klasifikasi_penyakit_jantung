@@ -1,112 +1,170 @@
 import streamlit as st
 import pandas as pd
-import numpy as np # Import numpy jika Anda menggunakan np.array() atau sejenisnya
 import pickle
+import xgboost as xgb
 
-st.set_page_config(page_title="Prediksi Risiko Penyakit Jantung", layout="centered")
-    
+# --- KONFIGURASI HALAMAN ---
+st.set_page_config(
+    page_title="Prediksi Penyakit Jantung",
+    page_icon="❤️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- Muat Model yang Sudah Dilatih ---
-# Pastikan file model_klasifikasi_xgboost.pkl ada di direktori yang sama
-# atau berikan path lengkap ke file tersebut.
-try:
-    with open('klasifikasi_penyakit_jantung_xgboost.pkl', 'rb') as file:
-        model = pickle.load(file)
-    st.success("Model berhasil dimuat!")
-except FileNotFoundError:
-    st.error("Error: File model 'model_klasifikasi_xgboost.pkl' tidak ditemukan.")
-    st.info("Pastikan Anda sudah melatih model XGBoost dan menyimpannya dengan nama tersebut.")
-    st.stop() # Hentikan aplikasi jika model tidak ditemukan
+# --- FUNGSI UNTUK MEMUAT MODEL ---
+# Menggunakan cache agar model hanya dimuat sekali
+@st.cache_resource
+def load_model(path):
+    """Memuat model dari file .pkl"""
+    try:
+        with open(path, 'rb') as file:
+            model = pickle.load(file)
+        return model
+    except FileNotFoundError:
+        st.error(f"File model tidak ditemukan di path: {path}")
+        return None
+    except Exception as e:
+        st.error(f"Terjadi error saat memuat model: {e}")
+        return None
 
-# --- JIKA ANDA MENGGUNAKAN SCALER/ENCODER SAAT PELATIHAN, MUAT JUGA DI SINI ---
-# Contoh:
-# try:
-#     scaler = joblib.load('scaler_data.pkl') # Ganti dengan nama file scaler Anda
-#     st.success("Scaler berhasil dimuat!")
-# except FileNotFoundError:
-#     st.warning("Peringatan: File scaler tidak ditemukan. Jika model Anda dilatih dengan data yang diskalakan, prediksi mungkin tidak akurat.")
-#     scaler = None # Atur None jika tidak ada scaler
+# Memuat model yang sudah dilatih
+model_path = "klasifikasi_penyakit_jantung_xgboost.pkl"
+model = load_model(model_path)
 
-# --- Judul Aplikasi Streamlit ---
-st.title("🫀 Prediksi Risiko Penyakit Jantung")
-st.markdown("Aplikasi ini memprediksi risiko penyakit jantung berdasarkan input fitur pasien.")
+# --- ANTARMUKA PENGGUNA (UI) ---
+st.title("❤️ Aplikasi Prediksi Penyakit Jantung")
+st.write("""
+Aplikasi ini menggunakan model Machine Learning (XGBoost) untuk memprediksi risiko penyakit jantung berdasarkan data medis pasien. 
+Silakan masukkan data pasien pada panel di sebelah kiri.
+""")
 
-st.write("---")
+# Sidebar untuk input dari pengguna
+st.sidebar.header("Input Data Pasien")
 
-# --- Form Input untuk Fitur Pasien ---
-st.header("Input Data Pasien")
+def user_input_features():
+    """Mengambil input dari pengguna melalui sidebar"""
+    st.sidebar.markdown("**Fitur Biometrik**")
+    age = st.sidebar.slider('Usia (Tahun)', 20, 80, 50)
+    sex_options = {'Pria': 'Male', 'Wanita': 'Female'}
+    sex = st.sidebar.radio('Jenis Kelamin', list(sex_options.keys()))
 
-# Mengumpulkan input dari pengguna
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    age = st.slider("Usia", 1, 120, 50)
-    sex = st.selectbox("Jenis Kelamin", options=[(0, "Perempuan"), (1, "Laki-laki")], format_func=lambda x: x[1])[0] # 0: Perempuan, 1: Laki-laki
-    cp = st.selectbox("Tipe Nyeri Dada (cp)", options=[0, 1, 2, 3], help="0: Asymptomatic, 1: Atypical Angina, 2: Non-Anginal Pain, 3: Typical Angina")
-    trestbps = st.number_input("Tekanan Darah Istirahat (trestbps)", 80, 200, 120, help="Tekanan darah sistolik saat istirahat (mm Hg)")
-
-with col2:
-    chol = st.number_input("Kolesterol Serum (chol)", 100, 600, 200, help="Kolesterol serum dalam mg/dl")
-    fbs = st.selectbox("Gula Darah Puasa > 120 mg/dl (fbs)", options=[(0, "Tidak"), (1, "Ya")], format_func=lambda x: x[1])[0] # 0: False, 1: True
-    restecg = st.selectbox("Hasil Elektrokardiogram Saat Istirahat (restecg)", options=[0, 1, 2], help="0: Normal, 1: ST-T wave abnormality, 2: Left ventricular hypertrophy")
-    thalach = st.number_input("Detak Jantung Maksimal Tercapai (thalach)", 70, 220, 150, help="Detak jantung maksimal yang tercapai saat uji stres")
-
-with col3:
-    exang = st.selectbox("Angina Akibat Olahraga (exang)", options=[(0, "Tidak"), (1, "Ya")], format_func=lambda x: x[1])[0] # 0: No, 1: Yes
-    oldpeak = st.number_input("Depresi ST Akibat Olahraga Relatif Terhadap Istirahat (oldpeak)", 0.0, 6.0, 1.0, step=0.1, help="Penurunan ST yang diinduksi olahraga relatif terhadap istirahat")
-    slope = st.selectbox("Kemiringan Segmen ST Puncak Latihan (slope)", options=[0, 1, 2], help="0: Upsloping, 1: Flat, 2: Downsloping")
-    ca = st.selectbox("Jumlah Pembuluh Darah Besar (ca)", options=[0, 1, 2, 3, 4], help="Jumlah pembuluh darah besar (0-3) yang diwarnai oleh fluoroskopi")
-    thal = st.selectbox("Thalassemia (thal)", options=[0, 1, 2, 3], help="0: Normal, 1: Fixed defect, 2: Reversable defect, 3: Other types (rarely used)") # Biasanya 1,2,3, tapi contoh data ada 0
-
-
-# --- Tombol Prediksi ---
-if st.button("Prediksi Risiko Penyakit Jantung"):
-    # Kumpulkan semua input ke dalam dictionary
-    input_data = {
-        'age': [age],
-        'sex': [sex],
-        'cp': [cp],
-        'trestbps': [trestbps],
-        'chol': [chol],
-        'fbs': [fbs],
-        'restecg': [restecg],
-        'thalach': [thalach],
-        'exang': [exang],
-        'oldpeak': [oldpeak],
-        'slope': [slope],
-        'ca': [ca],
-        'thal': [thal]
+    st.sidebar.markdown("**Fitur Medis**")
+    cp_options = {
+        'Typical Angina': 'typical angina',
+        'Atypical Angina': 'atypical angina',
+        'Non-Anginal': 'non-anginal',
+        'Asymptomatic': 'asymptomatic'
     }
+    cp = st.sidebar.selectbox('Tipe Nyeri Dada (Chest Pain)', list(cp_options.keys()))
 
-    # Buat DataFrame dari input
-    # Penting: Pastikan urutan kolom sesuai dengan saat model dilatih!
-    # Urutan ini harus sama dengan X_train Anda.
-    input_df = pd.DataFrame(input_data)
-
-    # --- LAKUKAN PRA-PEMROSESAN YANG SAMA DENGAN DATA PELATIHAN ---
-    # Jika Anda menggunakan scaler atau encoder, terapkan di sini.
-    # Contoh jika Anda menggunakan StandardScaler:
-    # if scaler:
-    #     input_processed = scaler.transform(input_df)
-    # else:
-    #     input_processed = input_df
+    trestbps = st.sidebar.slider('Tekanan Darah Istirahat (mm Hg)', 90, 200, 120)
     
-    input_processed = input_df # Untuk contoh ini, asumsi tidak ada pra-pemrosesan kompleks
+    # --- PERUBAHAN DI SINI ---
+    # Mengubah slider menjadi number_input untuk kemudahan
+    chol = st.sidebar.number_input('Kolesterol Serum (mg/dl)', min_value=100, max_value=600, value=200)
 
-    # --- Buat Prediksi ---
-    prediction = model.predict(input_processed)
-    prediction_proba = model.predict_proba(input_processed)
+    fbs_options = {'Ya (> 120 mg/dl)': True, 'Tidak (<= 120 mg/dl)': False}
+    fbs = st.sidebar.radio('Gula Darah Puasa > 120 mg/dl', list(fbs_options.keys()))
 
-    st.write("---")
-    st.header("Hasil Prediksi")
+    restecg_options = {
+        'Normal': 'normal',
+        'LV Hypertrophy': 'lv hypertrophy',
+        'ST-T Abnormality': 'st-t abnormality'
+    }
+    restecg = st.sidebar.selectbox('Hasil Elektrokardiogram Istirahat', list(restecg_options.keys()))
 
+    thalach = st.sidebar.slider('Detak Jantung Maksimum Tercapai', 70, 220, 150)
+
+    exang_options = {'Ya': True, 'Tidak': False}
+    exang = st.sidebar.radio('Angina Akibat Olahraga (Exercise Induced Angina)', list(exang_options.keys()))
+
+    oldpeak = st.sidebar.slider('Oldpeak (ST depression induced by exercise)', 0.0, 6.5, 1.0)
+
+    slope_options = {
+        'Upsloping': 'upsloping',
+        'Flat': 'flat',
+        'Downsloping': 'downsloping'
+    }
+    slope = st.sidebar.selectbox('Slope dari Puncak Latihan ST Segment', list(slope_options.keys()))
+    
+    ca = st.sidebar.slider('Jumlah Pembuluh Darah Utama (0-3)', 0, 3, 0)
+    
+    thal_options = {
+        'Normal': 'normal',
+        'Fixed Defect': 'fixed defect',
+        'Reversable Defect': 'reversable defect'
+    }
+    thal = st.sidebar.selectbox('Thalassemia', list(thal_options.keys()))
+
+    # Mengumpulkan data dalam dictionary
+    data = {
+        'age': age,
+        'sex': sex_options[sex],
+        'cp': cp_options[cp],
+        'trestbps': trestbps,
+        'chol': chol,
+        'fbs': fbs_options[fbs],
+        'restecg': restecg_options[restecg],
+        'thalach': thalach,
+        'exang': exang_options[exang],
+        'oldpeak': oldpeak,
+        'slope': slope_options[slope],
+        'ca': float(ca),
+        'thal': thal_options[thal]
+    }
+    
+    features = pd.DataFrame(data, index=[0])
+    return features
+
+# Mengambil input pengguna
+input_df = user_input_features()
+
+# Menampilkan data input mentah
+st.subheader("Data Pasien yang Dimasukkan")
+st.write(input_df)
+
+# Tombol untuk melakukan prediksi
+predict_button = st.button("Lakukan Prediksi", type="primary")
+
+# --- LOGIKA PREDIKSI ---
+if predict_button and model is not None:
+    # 1. Preprocessing data input agar sesuai dengan data training
+    #    a. Lakukan One-Hot Encoding
+    input_df_encoded = pd.get_dummies(input_df, dtype=int)
+    
+    #    b. Ambil daftar kolom yang diharapkan oleh model
+    model_columns = model.get_booster().feature_names
+    
+    #    c. Sesuaikan kolom input dengan kolom model
+    #       (tambah kolom yang hilang dengan nilai 0)
+    final_df = input_df_encoded.reindex(columns=model_columns, fill_value=0)
+    
+    # 2. Lakukan Prediksi
+    prediction = model.predict(final_df)
+    prediction_proba = model.predict_proba(final_df)
+    
+    # 3. Tampilkan Hasil
+    st.subheader("Hasil Prediksi")
+    
+    # Asumsi: 0 = Tidak Sakit Jantung, 1 = Sakit Jantung
     if prediction[0] == 1:
-        st.error("⚠️ Pasien Diprediksi **BERISIKO TINGGI** Terkena Penyakit Jantung")
-        st.write(f"Terklasifikasi pada kelas: **{prediction[0]}**")
-        st.write(f"Probabilitas risiko tidak terkena penyakit jantung: **{prediction_proba[0][0]*100:.2f}%**")
-        st.write(f"Probabilitas risiko terkena penyakit jantung: **{prediction_proba[0][1]*100:.2f}%**")
+        st.error("**Risiko Tinggi: Terdeteksi Penyakit Jantung**", icon="💔")
     else:
-        st.write(f"Terklasifikasi pada kelas: **{prediction[0]}**")
-        st.success("✅ Pasien Diprediksi **BERISIKO RENDAH** Terkena Penyakit Jantung")
-        st.write(f"Probabilitas risiko tidak terkena penyakit jantung: **{prediction_proba[0][0]*100:.2f}%**")
-        st.write(f"Probabilitas risiko terkena penyakit jantung: **{prediction_proba[0][1]*100:.2f}%**")
+        st.success("**Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
+        
+    # Tampilkan probabilitas
+    st.write("Probabilitas Prediksi:")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Probabilitas **Tidak** Sakit Jantung", value=f"{prediction_proba[0][0]*100:.2f}%")
+    with col2:
+        st.metric(label="Probabilitas Sakit Jantung", value=f"{prediction_proba[0][1]*100:.2f}%")
+
+    # Disclaimer
+    st.warning("""
+    **Disclaimer:** Hasil prediksi ini berdasarkan model machine learning dan tidak boleh dianggap sebagai diagnosis medis final. 
+    Selalu konsultasikan dengan dokter atau tenaga medis profesional untuk diagnosis dan penanganan lebih lanjut.
+    """)
+elif predict_button and model is None:
+    st.error("Prediksi tidak dapat dilakukan karena model gagal dimuat.")
+
