@@ -149,10 +149,10 @@ if predict_button and model is not None:
     # Asumsi: 0 = Tidak Sakit Jantung, 1 = Sakit Jantung
     if prediction[0] == 1:
         st.error("**Risiko Tinggi: Terdeteksi Penyakit Jantung**", icon="☠️")
-        st.error(f"**Pasien Terklasifikasi Ke Kelas {prediction[0]}")
+        st.error(f"Pasien Terklasifikasi Ke Kelas: **{prediction[0]}**")
     else:
         st.success("**Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
-        st.error(f"**Pasien Terklasifikasi Ke Kela {prediction[0]}s ")
+        st.error(f"Pasien Terklasifikasi Ke Kelas: **{prediction[0]}**")
 
         
     # Tampilkan probabilitas
