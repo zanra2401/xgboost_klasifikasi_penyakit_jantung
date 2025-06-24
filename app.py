@@ -154,19 +154,5 @@ if predict_button and model is not None:
         st.success("**Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
         st.error(f"Pasien Terklasifikasi Ke Kelas: **{prediction[0]}**")
 
-        
-    # Tampilkan probabilitas
-    st.write("Probabilitas Prediksi:")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="Probabilitas **Tidak** Sakit Jantung", value=f"{prediction_proba[0][0]*100:.2f}%")
-    with col2:
-        st.metric(label="Probabilitas Sakit Jantung", value=f"{prediction_proba[0][1]*100:.2f}%")
-
-    # Disclaimer
-    st.warning("""
-    **Disclaimer:** Hasil prediksi ini berdasarkan model machine learning dan tidak boleh dianggap sebagai diagnosis medis final. 
-    Selalu konsultasikan dengan dokter atau tenaga medis profesional untuk diagnosis dan penanganan lebih lanjut.
-    """)
 elif predict_button and model is None:
     st.error("Prediksi tidak dapat dilakukan karena model gagal dimuat.")
