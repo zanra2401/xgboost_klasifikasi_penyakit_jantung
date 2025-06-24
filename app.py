@@ -151,7 +151,7 @@ if predict_button and model is not None:
         st.error("**Risiko Tinggi: Terdeteksi Penyakit Jantung**", icon="☠️")
         st.error(f"Pasien Terklasifikasi Ke Kelas: **{prediction[0]}**")
     else:
-        st.success("**Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
+        st.success("**  Risiko Rendah: Tidak Terdeteksi Penyakit Jantung**", icon="❤️")
         st.error(f"Pasien Terklasifikasi Ke Kelas: **{prediction[0]}**")
 
 elif predict_button and model is None:
